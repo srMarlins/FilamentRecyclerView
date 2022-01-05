@@ -31,6 +31,6 @@ class ModelRecyclerAdapter : RecyclerView.Adapter<ModelRecyclerAdapter.ModelView
     }
 
     inner class ModelViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val modelView = itemView as ModelSurfaceView
+        val modelView = itemView as ModelTextureView
     }
 }

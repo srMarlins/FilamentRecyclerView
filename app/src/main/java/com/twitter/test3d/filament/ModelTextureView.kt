@@ -3,21 +3,23 @@ package com.twitter.test3d.filament
 import android.content.Context
 import android.util.AttributeSet
 import android.view.Choreographer
-import android.view.SurfaceView
-import com.google.android.filament.utils.ModelViewer
+import android.view.TextureView
+import com.google.android.filament.Engine
+import com.google.android.filament.View
+import com.google.android.filament.android.UiHelper
 import java.nio.Buffer
 
-class ModelSurfaceView @JvmOverloads constructor(
+class ModelTextureView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : SurfaceView(context, attrs) {
+) : TextureView(context, attrs) {
 
     /**
      * [R, G, B, A] float values between 0-1
      * @see ModelViewer currently doesn't handle alpha values properly,
      *  so this value will end up being ignored until fixed
      */
-    private val backgroundColor = floatArrayOf(.5f, .5f, .5f, 1f)
+    private val backgroundColor = floatArrayOf(.0f, .0f, .0f, .0f)
 
     /**
      * Controls the necessary components to view 3d models
@@ -78,9 +80,19 @@ class ModelSurfaceView @JvmOverloads constructor(
     /**
      * Creates the ModelViewer with the current backgroundColor
      */
-    private fun createModelViewer() = ModelViewer(this).apply {
-        setClearOptions()
-    }
+    private fun createModelViewer() =
+        ModelViewer(this,
+            Engine.create(),
+            UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK).apply {
+                isOpaque = false
+            }
+        ).apply {
+            // the following code is necessary for transparency,
+            // remove if we need a specific background that isn't dictated by the parent views
+            view.blendMode = View.BlendMode.TRANSLUCENT
+            scene.skybox = null
+            setClearOptions()
+        }
 
     private val frameCallback = object : Choreographer.FrameCallback {
         private val startTime = System.nanoTime()

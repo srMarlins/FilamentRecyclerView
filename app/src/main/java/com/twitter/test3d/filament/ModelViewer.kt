@@ -59,7 +59,11 @@ private const val kSensitivity = 100f
  *
  * See `sample-gltf-viewer` for a usage example.
  */
-class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
+class ModelViewer(
+    val engine: Engine,
+    val uiHelper: UiHelper
+) : android.view.View.OnTouchListener {
+
     var asset: FilamentAsset? = null
         private set
 
@@ -83,9 +87,10 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
     val view: View
     val camera: Camera
     val renderer: Renderer
-    @Entity val light: Int
 
-    private val uiHelper: UiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
+    @Entity
+    val light: Int
+
     private lateinit var displayHelper: DisplayHelper
     private lateinit var cameraManipulator: Manipulator
     private lateinit var gestureDetector: GestureDetector
@@ -106,7 +111,8 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
     init {
         renderer = engine.createRenderer()
         scene = engine.createScene()
-        camera = engine.createCamera(engine.entityManager.create()).apply { setExposure(kAperture, kShutterSpeed, kSensitivity) }
+        camera = engine.createCamera(engine.entityManager.create())
+            .apply { setExposure(kAperture, kShutterSpeed, kSensitivity) }
         view = engine.createView()
         view.scene = scene
         view.camera = camera
@@ -130,9 +136,18 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
         scene.addEntity(light)
     }
 
-    constructor(surfaceView: SurfaceView, engine: Engine = Engine.create(), manipulator: Manipulator? = null) : this(engine) {
+    constructor(
+        surfaceView: SurfaceView,
+        engine: Engine = Engine.create(),
+        uiHelper: UiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK),
+        manipulator: Manipulator? = null
+    ) : this(engine, uiHelper) {
         cameraManipulator = manipulator ?: Manipulator.Builder()
-            .targetPosition(kDefaultObjectPosition.x, kDefaultObjectPosition.y, kDefaultObjectPosition.z)
+            .targetPosition(
+                kDefaultObjectPosition.x,
+                kDefaultObjectPosition.y,
+                kDefaultObjectPosition.z
+            )
             .viewport(surfaceView.width, surfaceView.height)
             .build(Manipulator.Mode.ORBIT)
 
@@ -145,9 +160,18 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
     }
 
     @Suppress("unused")
-    constructor(textureView: TextureView, engine: Engine = Engine.create(), manipulator: Manipulator? = null) : this(engine) {
+    constructor(
+        textureView: TextureView,
+        engine: Engine = Engine.create(),
+        uiHelper: UiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK),
+        manipulator: Manipulator? = null
+    ) : this(engine, uiHelper) {
         cameraManipulator = manipulator ?: Manipulator.Builder()
-            .targetPosition(kDefaultObjectPosition.x, kDefaultObjectPosition.y, kDefaultObjectPosition.z)
+            .targetPosition(
+                kDefaultObjectPosition.x,
+                kDefaultObjectPosition.y,
+                kDefaultObjectPosition.z
+            )
             .viewport(textureView.width, textureView.height)
             .build(Manipulator.Mode.ORBIT)
 
@@ -216,8 +240,8 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
     fun transformToUnitCube(centerPoint: Float3 = kDefaultObjectPosition) {
         asset?.let { asset ->
             val tm = engine.transformManager
-            var center = asset.boundingBox.center.let { v-> Float3(v[0], v[1], v[2]) }
-            val halfExtent = asset.boundingBox.halfExtent.let { v-> Float3(v[0], v[1], v[2]) }
+            var center = asset.boundingBox.center.let { v -> Float3(v[0], v[1], v[2]) }
+            val halfExtent = asset.boundingBox.halfExtent.let { v -> Float3(v[0], v[1], v[2]) }
             val maxExtent = 2.0f * max(halfExtent)
             val scaleFactor = 2.0f / maxExtent
             center -= centerPoint / scaleFactor
@@ -273,7 +297,8 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
         camera.lookAt(
             eyePos[0], eyePos[1], eyePos[2],
             target[0], target[1], target[2],
-            upward[0], upward[1], upward[2])
+            upward[0], upward[1], upward[2]
+        )
 
         // Render the scene, unless the renderer wants to skip the frame.
         if (renderer.beginFrame(swapChain!!, frameTimeNanos)) {
@@ -285,9 +310,9 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
     private fun populateScene(asset: FilamentAsset) {
         val rcm = engine.renderableManager
         var count = 0
-        val popRenderables = {count = asset.popRenderables(readyRenderables); count != 0}
+        val popRenderables = { count = asset.popRenderables(readyRenderables); count != 0 }
         while (popRenderables()) {
-            for (i in 0..count-1) {
+            for (i in 0..count - 1) {
                 val ri = rcm.getInstance(readyRenderables[i])
                 rcm.setScreenSpaceContactShadows(ri, true)
             }
