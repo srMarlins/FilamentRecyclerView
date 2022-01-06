@@ -17,8 +17,7 @@ class EngineHelper {
     private lateinit var skybox: Skybox
     private var light: Int = 0
 
-    private var asset: FilamentAsset? = null
-    var scene: Scene? = null
+    val scenes = mutableMapOf<Int, ProductScene>()
 
     companion object {
         val STATIC_HELPER by lazy { EngineHelper() }
@@ -38,17 +37,41 @@ class EngineHelper {
             .build(engine, light)
     }
 
+    fun loadModelGlb(
+        buffer: Buffer
+    ): ProductScene {
+        if (!engine.isValid) throw IllegalStateException("Engine must be created before loading models")
+        // looks like we do not need destoryModel() in our case
+
+        if (scenes.containsKey(buffer.hashCode()))
+            return scenes[buffer.hashCode()]!!
+
+        val scene = engine.createScene()
+        val asset = loadGlb(assetLoader, resourceLoader, buffer)
+        transformToUnitCube(engine, asset)
+
+//        scene.indirectLight = indirectLight
+//        scene.skybox = skybox
+
+        scene.addEntities(asset.entities)
+
+        scene.addEntity(light)
+        scenes[buffer.hashCode()] = ProductScene(engine, scene, asset)
+
+        return scenes[buffer.hashCode()]!!
+    }
+
     fun destroy() {
-        destroyModel()
+        //destroyModel()
         engine.lightManager.destroy(light)
         engine.destroyEntity(light)
         engine.destroyIndirectLight(indirectLight)
         engine.destroySkybox(skybox)
 
-        /*scenes.forEach {
+        scenes.forEach {
             engine.destroyScene(it.value.scene)
             assetLoader.destroyAsset(it.value.asset)
-        }*/
+        }
 
         assetLoader.destroy()
         resourceLoader.destroy()
@@ -56,57 +79,24 @@ class EngineHelper {
         engine.destroy()
     }
 
-    fun loadModelGlb(
-        buffer: Buffer
-    ): FilamentAsset {
-        if (!engine.isValid) throw IllegalStateException("Engine must be created before loading models")
-        destroyModel()
-        val asset = assetLoader.createAssetFromBinary(buffer)
-        asset?.apply {
-            resourceLoader.asyncBeginLoad(asset)
-            asset.releaseSourceData()
+//    private fun destroyModel() {
+//        resourceLoader.asyncCancelLoad()
+//        resourceLoader.evictResourceData()
+//        asset?.let { asset ->
+//            this.scene?.removeEntities(asset.entities)
+//            assetLoader.destroyAsset(asset)
+//            this.asset = null
+//            //this.animator = null
+//        }
+//    }
+
+    /**
+     * Removes the transformation that was set up via transformToUnitCube.
+     */
+    fun clearRootTransform(asset: FilamentAsset) {
+        asset?.let {
+            val tm = engine.transformManager
+            tm.setTransform(tm.getInstance(it.root), Mat4().toFloatArray())
         }
-        this.asset = asset
-        createScene(asset!!)
-        return asset
-    }
-
-    fun transformToUnitCube(asset: FilamentAsset) {
-        val tm = engine.transformManager
-        val center = asset.boundingBox.center.let { v -> Float3(v[0], v[1], v[2]) }
-        val halfExtent = asset.boundingBox.halfExtent.let { v -> Float3(v[0], v[1], v[2]) }
-        val maxExtent = 2.0f * max(halfExtent)
-        val scaleFactor = 2.0f / maxExtent
-        val transform = scale(Float3(scaleFactor)) * translation(Float3(-center))
-        tm.setTransform(tm.getInstance(asset.root), transpose(transform).toFloatArray())
-    }
-
-    private fun destroyModel() {
-        resourceLoader.asyncCancelLoad()
-        resourceLoader.evictResourceData()
-        asset?.let { asset ->
-            this.scene?.removeEntities(asset.entities)
-            assetLoader.destroyAsset(asset)
-            this.asset = null
-            //this.animator = null
-        }
-    }
-
-    private fun createScene(asset: FilamentAsset/*name: String, gltf: String*/) {
-        val scene = engine.createScene()
-        /*val asset = readCompressedAsset(this, gltf).let {
-            val asset = loadModelGlb(assetLoader, resourceLoader, it)
-            transformToUnitCube(engine, asset)
-            asset
-        }*/
-        //scene.indirectLight = indirectLight
-        //scene.skybox = skybox
-
-        scene.addEntities(asset.entities)
-
-        scene.addEntity(light)
-        this.scene = scene
-
-        //scenes[name] = ProductScene(engine, scene, asset)
     }
 }

@@ -28,7 +28,7 @@ class ModelSurfaceView @JvmOverloads constructor(
      *
      * @see <a href="https://github.com/google/filament/issues/4724">Github Issue</a>
      */
-    private var modelViewer: ModelViewer
+    private var modelViewer: CustomModelViewer
 
     private val choreographer = Choreographer.getInstance()
 
@@ -42,8 +42,10 @@ class ModelSurfaceView @JvmOverloads constructor(
      * Load a glb model, represented as a Buffer, centered and scaled into the current view
      */
     fun loadGlb(buffer: Buffer) {
+        var productScene = EngineHelper.STATIC_HELPER.loadModelGlb(buffer);
+
         // This will asynchronously parse/prepare the glb file & load it into the display
-        modelViewer.loadModelGlb(buffer)
+        modelViewer.loadModelResources(productScene.asset, productScene.scene)
         // This will perform a normalized scaling of the model to fit the view
         modelViewer.transformToUnitCube()
         choreographer.postFrameCallback(frameCallback)
@@ -68,7 +70,7 @@ class ModelSurfaceView @JvmOverloads constructor(
      * Sets the clear options for the renderer within the ModelViewer
      * using the current background color to color the cleared pixels
      */
-    private fun ModelViewer.setClearOptions() {
+    private fun CustomModelViewer.setClearOptions() {
         renderer.clearOptions = renderer.clearOptions.apply {
             clearColor = backgroundColor
             clear = true
@@ -78,7 +80,7 @@ class ModelSurfaceView @JvmOverloads constructor(
     /**
      * Creates the ModelViewer with the current backgroundColor
      */
-    private fun createModelViewer() = ModelViewer(this).apply {
+    private fun createModelViewer() = CustomModelViewer(this, EngineHelper.STATIC_HELPER.engine).apply {
         setClearOptions()
     }
 
